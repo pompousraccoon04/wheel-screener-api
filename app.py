@@ -137,28 +137,24 @@ def get_near_money_put_iv(ticker_symbol, current_price, mode="monthly"):
         response.raise_for_status()
 
         data = response.json()
-
-        if "options" in data:
-
-            if "options" not in data or "option" not in data["options"]:
-                print(f"   No options chain data for {ticker_symbol}")
-                print(f"   Full response: {data}")
-                return None
+        
+        if "options" not in data or "option" not in data["options"]:
+            print(f"   No options chain data for {ticker_symbol}")
+            print(f"   Full response: {data}")
+            return None
+        
         options = data["options"]["option"]
-
+        
         # Ensure options is a list
-
         if not isinstance(options, list):
             options = [options]
         # Filter for puts only
-
         puts = [opt for opt in options if opt.get("option_type") == "put"]
-
-        if len(puts) > 0:
-
-            if not puts:
-                print(f"   No put options found for {ticker_symbol}")
+        
+        if not puts:
+            print(f"   No put options found for {ticker_symbol}")
             return None
+        
         # Find puts near 60-80% of current price (roughly 20-40 delta range)
         # This gives us better liquidity and more reasonable IV
 
@@ -185,7 +181,6 @@ def get_near_money_put_iv(ticker_symbol, current_price, mode="monthly"):
         strikes = [f"${put['strike']:.0f}" for put in nearest_puts]
 
         # Get average IV from nearest puts
-
         iv_values = []
         for put in nearest_puts:
             greeks = put.get("greeks", {})
@@ -194,18 +189,18 @@ def get_near_money_put_iv(ticker_symbol, current_price, mode="monthly"):
                 mid_iv = float(greeks["mid_iv"])
                 # mid_iv is already in decimal form (e.g., 0.5234 = 52.34%)
                 # Only include reasonable IV values (5% to 200%)
-
                 if 0.05 <= mid_iv <= 2.0:
                     iv_values.append(mid_iv)
-                else:
-
-                    if iv_values:
-                        avg_iv = sum(iv_values) / len(iv_values)
+        
+        if iv_values:
+            avg_iv = sum(iv_values) / len(iv_values)
             return round(avg_iv * 100, 2)  # Convert to percentage for display
+        
         print(f"   No IV data found in options chain for {ticker_symbol}")
         return None
+        
     except Exception as e:
-        print(f"  Error getting IV for {ticker_symbol}: {str(e)}")
+        print(f"[WARN] Error getting IV for {ticker_symbol}: {str(e)}")
         return None
 
 
